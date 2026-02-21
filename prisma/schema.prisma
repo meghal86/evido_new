@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For Credentials provider
+  accounts      Account[]
+  sessions      Session[]
+  
+
+  // Custom fields
+  plan          String    @default("Free") // Free, Basic, Premium
+  stripeCustomerId String?
+  role          String    @default("petitioner") // petitioner, attorney
+  onboardingComplete Boolean @default(false)
+  attorneyData  Json?     // { bar_number, firm_name, states_licensed[], specialization[], years_experience, is_verified }
+  petitionerData Json?    // { target_visa, field_of_work, case_stage, github_username }
+  
+  evidence      EvidenceItem[]
+  reports       Report[]
+  letters       RecommendationLetter[]
+  attorneyCases CaseAttorney[]    @relation("AttorneyCases")
+  clientAttorneys CaseAttorney[]  @relation("ClientAttorneys")
+  rfeResponses  RFEResponse[]
+  ownedTeamMembers  TeamMember[]  @relation("OwnedTeamMembers")
+  teamMemberships   TeamMember[]  @relation("TeamMemberships")
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// CaseFile / Evido Models
+
+model EvidenceItem {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  criterionId String   // e.g. "awards", "membership"
+  exhibitId   String?  // e.g. "A-1", "B-3"
+  title       String
+  description String?  @db.Text
+  url         String?  // verification URL
+  fileUrl     String?  // Supabase Storage URL
+  status      String   @default("draft") // draft, verified
+  
+  // Provenance & Source
+  sourceType  String?  // GitHub, LinkedIn, Manual, Scholar
+  sourceDate  DateTime?
+  metrics     Json?    // e.g. { stars: 3200, salary_percentile: 99 }
+  
+  // OCR & AI Analysis
+  extractedText String? @db.Text
+  aiAnalysis    Json?
+  
+  // Attorney Review
+  attorneyStatus String  @default("draft") // draft, under_review, approved, rejected, revision_needed
+  attorneyNotes  String? @db.Text
+  locked         Boolean @default(false)
+  approvedAt     DateTime?
+  
+  auditLogs   AuditLog[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     String   @db.Text // AI generated content
+  score       Int      // 0-100
+  
+  createdAt   DateTime @default(now())
+}
+
+model RecommendationLetter {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  expertName    String
+  expertTitle   String
+  expertOrg     String
+  expertEmail   String
+  expertPhone   String?
+  expertLinkedin String?
+  relationship  String   // colleague, supervisor, peer, independent
+  notes         String?  @db.Text
+  
+  status        String   @default("not_requested") // not_requested, requested, draft_received, final_received, signed
+  requestedDate DateTime?
+  dueDate       DateTime?
+  
+  draftUrl      String?
+  finalUrl      String?
+  
+  qualityScore  Int?
+  aiFeedback    Json?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  evidenceItemId String
+  evidenceItem   EvidenceItem @relation(fields: [evidenceItemId], references: [id], onDelete: Cascade)
+  
+  action         String   // approved, rejected, revision_needed
+  actorName      String
+  notes          String?  @db.Text
+  
+  timestamp      DateTime @default(now())
+}
+
+model CaseAttorney {
+  id         String   @id @default(cuid())
+  
+  clientId   String
+  client     User     @relation("ClientAttorneys", fields: [clientId], references: [id])
+  
+  attorneyId String
+  attorney   User     @relation("AttorneyCases", fields: [attorneyId], references: [id])
+  
+  status     String   @default("pending") // pending, accepted
+  invitedAt  DateTime @default(now())
+  acceptedAt DateTime?
+  
+  @@unique([clientId, attorneyId])
+}
+
+model RFEResponse {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  filename    String
+  uploadUrl   String
+  
+  status      String   @default("analyzing") // analyzing, ready, failed
+  
+  analysis    Json?    // Stores the structured JSON from Gemini
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TeamMember {
+  id              String   @id @default(cuid())
+  caseOwnerId     String
+  caseOwner       User     @relation("OwnedTeamMembers", fields: [caseOwnerId], references: [id], onDelete: Cascade)
+  invitedEmail    String
+  invitedUserId   String?
+  invitedUser     User?    @relation("TeamMemberships", fields: [invitedUserId], references: [id])
+  role            String   // attorney, paralegal, consultant, reviewer
+  status          String   @default("invited") // invited, active, inactive
+  personalMessage String?  @db.Text
+  permissions     Json     @default("{\"view_case\": true, \"download_evidence\": true, \"email_notifications\": true, \"edit_criteria\": false, \"generate_reports\": false}")
+  invitedAt       DateTime @default(now())
+  acceptedAt      DateTime?
+  lastAccessedAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  activityLogs    TeamActivityLog[]
+
+  @@unique([caseOwnerId, invitedEmail])
+}
+
+model TeamActivityLog {
+  id             String      @id @default(cuid())
+  caseOwnerId    String
+  teamMemberId   String?
+  teamMember     TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  actorName      String
+  actionType     String      // invited, accepted, viewed_page, downloaded_report, edited_criteria, member_removed
+  actionDetails  Json?
+  createdAt      DateTime    @default(now())
+}
