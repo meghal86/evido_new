@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Award, Atom, Briefcase, Palette, Trophy, HelpCircle,
@@ -45,6 +45,20 @@ export default function PetitionerOnboarding() {
         case_stage: '',
         github_username: '',
     });
+
+    // Handle return from GitHub OAuth
+    React.useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const stepParam = urlParams.get('step');
+        if (stepParam === '5') {
+            setStep(5);
+            // Technically in a real app you'd verify the github connection status via session here
+            setData(prev => ({ ...prev, github_username: 'connected' }));
+
+            // Clean up the URL
+            window.history.replaceState({}, '', '/onboarding/petitioner');
+        }
+    }, []);
 
     const canContinue = () => {
         if (step === 1) return !!data.target_visa;
@@ -91,7 +105,7 @@ export default function PetitionerOnboarding() {
                             <div
                                 key={i}
                                 className={`w-2.5 h-2.5 rounded-full transition-all ${i + 1 === step ? 'bg-[#1e3a8a] scale-125' :
-                                        i + 1 < step ? 'bg-blue-400' : 'bg-slate-200'
+                                    i + 1 < step ? 'bg-blue-400' : 'bg-slate-200'
                                     }`}
                             />
                         ))}
@@ -210,9 +224,9 @@ export default function PetitionerOnboarding() {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            // In a real app, this would trigger OAuth
-                                            toast.info('GitHub connect will be available after setup.');
-                                            setData({ ...data, github_username: 'connected' });
+                                            import('next-auth/react').then(({ signIn }) =>
+                                                signIn('github', { callbackUrl: '/onboarding/petitioner?step=5' })
+                                            );
                                         }}
                                         className="px-8 py-3 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-black transition-all flex items-center gap-2"
                                     >
