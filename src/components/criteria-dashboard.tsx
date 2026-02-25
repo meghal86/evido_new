@@ -9,33 +9,27 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useRouter } from 'next/navigation';
 
-const criteria = [
-    { id: 'awards', name: 'Awards', icon: Trophy, status: 'Strong', count: '3 awards detected', color: 'emerald' },
-    { id: 'membership', name: 'Membership', icon: Users, status: 'Medium', count: '2 memberships', color: 'amber' },
-    { id: 'published', name: 'Published Material', icon: Newspaper, status: 'Good', count: '5 articles', color: 'blue' },
-    { id: 'judging', name: 'Judging', icon: Scale, status: 'Weak', count: 'Add evidence', color: 'red' },
-    { id: 'original', name: 'Original Contributions', icon: Lightbulb, status: 'Strong', count: 'Auto from GitHub', color: 'emerald' },
-    { id: 'authorship', name: 'Authorship', icon: PenTool, status: 'Good', count: '3 papers', color: 'blue' },
-    { id: 'leading', name: 'Leading Role', icon: Briefcase, status: 'Strong', count: 'Senior Manager', color: 'emerald' },
-    { id: 'salary', name: 'High Salary', icon: DollarSign, status: 'Strong', count: 'Top 10%', color: 'emerald' },
-    { id: 'artistic', name: 'Artistic Exhibitions', icon: Palette, status: 'N/A', count: 'Not applicable', color: 'slate' },
-    { id: 'commercial', name: 'Commercial Success', icon: TrendingUp, status: 'Medium', count: '$50k revenue', color: 'amber' },
-];
-
-const chartData = [
-    { name: 'Strong', value: 5, color: '#10b981' },
-    { name: 'Good', value: 2, color: '#3b82f6' },
-    { name: 'Medium', value: 2, color: '#f59e0b' },
-    { name: 'Weak', value: 1, color: '#ef4444' },
+const BASE_CRITERIA_META = [
+    { id: 'awards', name: 'Awards', icon: Trophy },
+    { id: 'membership', name: 'Membership', icon: Users },
+    { id: 'published', name: 'Published Material', icon: Newspaper },
+    { id: 'judging', name: 'Judging', icon: Scale },
+    { id: 'original', name: 'Original Contributions', icon: Lightbulb },
+    { id: 'authorship', name: 'Authorship', icon: PenTool },
+    { id: 'leading', name: 'Leading Role', icon: Briefcase },
+    { id: 'salary', name: 'High Salary', icon: DollarSign },
+    { id: 'artistic', name: 'Artistic Exhibitions', icon: Palette },
+    { id: 'commercial', name: 'Commercial Success', icon: TrendingUp },
 ];
 
 import { SourceMapping } from './source-mapping';
 
-// ... imports
-
 interface CriteriaDashboardProps {
     onSelectCriterion?: (id: string) => void;
     repos?: any[];
+    criteriaStatus?: Array<{ id: string, count: number, status: string, color: string, countText: string }>;
+    chartData?: Array<{ name: string, value: number, color: string }>;
+    strongCount?: number;
 }
 
 const categories = [
@@ -53,7 +47,13 @@ const categories = [
     }
 ];
 
-export const CriteriaDashboard: React.FC<CriteriaDashboardProps> = ({ onSelectCriterion, repos = [] }) => {
+export const CriteriaDashboard: React.FC<CriteriaDashboardProps> = ({
+    onSelectCriterion,
+    repos = [],
+    criteriaStatus = [],
+    chartData = [],
+    strongCount = 0
+}) => {
     const router = useRouter();
 
     const handleSelectCriterion = (id: string) => {
@@ -63,6 +63,22 @@ export const CriteriaDashboard: React.FC<CriteriaDashboardProps> = ({ onSelectCr
             router.push(`/criteria/${id}`);
         }
     };
+
+    // Combine base metadata with real dynamic stats
+    const hydratedCriteria = BASE_CRITERIA_META.map(base => {
+        const dynamicStat = criteriaStatus.find(c => c.id === base.id);
+        return {
+            ...base,
+            status: dynamicStat?.status || 'Weak',
+            count: dynamicStat?.countText || 'Add evidence',
+            color: dynamicStat?.color || 'red'
+        };
+    });
+
+    // Default empty chart if no data
+    const activeChartData = chartData.length > 0 ? chartData : [
+        { name: 'Weak', value: 10, color: '#ef4444' } // 10 empty if nothing passed
+    ];
 
     return (
         <div className="pt-32 lg:pt-28 pb-16 px-4 lg:px-8 max-w-5xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -74,7 +90,7 @@ export const CriteriaDashboard: React.FC<CriteriaDashboardProps> = ({ onSelectCr
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
-                                data={chartData}
+                                data={activeChartData}
                                 innerRadius={65}
                                 outerRadius={85}
                                 paddingAngle={5}
@@ -82,14 +98,14 @@ export const CriteriaDashboard: React.FC<CriteriaDashboardProps> = ({ onSelectCr
                                 animationDuration={1500}
                                 stroke="none"
                             >
-                                {chartData.map((entry, index) => (
+                                {activeChartData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
                         </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none group-hover:scale-110 transition-transform duration-500">
-                        <span className="text-4xl font-black text-[#0f172a] tracking-tighter">7/10</span>
+                        <span className="text-4xl font-black text-[#0f172a] tracking-tighter">{strongCount}/10</span>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Profile Strength</span>
                     </div>
                 </div>
@@ -99,12 +115,15 @@ export const CriteriaDashboard: React.FC<CriteriaDashboardProps> = ({ onSelectCr
                         Analysis Complete
                     </div>
                     <h2 className="text-3xl font-black text-[#0f172a] mb-3 tracking-tight">Case Evaluation</h2>
-                    <p className="text-slate-500 font-medium mb-8 leading-relaxed max-w-lg">We've mapped your evidence against all 10 EB-1A criteria. You currently meet the minimum requirements for a strong filing.</p>
+                    <p className="text-slate-500 font-medium mb-8 leading-relaxed max-w-lg">
+                        We've mapped your evidence against all 10 EB-1A criteria. {strongCount >= 3 ? "You currently meet the minimum requirements for a strong filing." : `You currently meet ${strongCount} out of the 3 required criteria for a strong filing.`}
+                    </p>
 
                     <div className="flex flex-wrap justify-center md:justify-start gap-6">
-                        <LegendItem color="#10b981" label="5 Strong" />
-                        <LegendItem color="#3b82f6" label="2 Good" />
-                        <LegendItem color="#f59e0b" label="2 Medium" />
+                        <LegendItem color="#10b981" label="Strong" />
+                        <LegendItem color="#3b82f6" label="Good" />
+                        <LegendItem color="#f59e0b" label="Medium" />
+                        <LegendItem color="#ef4444" label="Weak" />
                     </div>
                 </div>
             </div>
@@ -123,7 +142,7 @@ export const CriteriaDashboard: React.FC<CriteriaDashboardProps> = ({ onSelectCr
 
                         <div className="grid grid-cols-1 gap-3">
                             {cat.items.map((id) => {
-                                const item = criteria.find(c => c.id === id);
+                                const item = hydratedCriteria.find(c => c.id === id);
                                 if (!item) return null;
                                 return (
                                     <CriterionItem
