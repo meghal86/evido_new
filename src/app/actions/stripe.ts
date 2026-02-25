@@ -27,7 +27,10 @@ export async function createCheckoutSession(planName: string) {
     }
 
     if (!priceId) {
-        throw new Error("Price ID not configured");
+        return {
+            error: `Billing is not fully configured for the ${planName} plan yet. Missing Price ID.`,
+            success: false
+        };
     }
 
     // Enterprise is a recurring subscription; Basic/Premium are one-time payments
