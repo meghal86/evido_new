@@ -18,8 +18,10 @@ export default async function TeamPage() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { plan: true, name: true },
+        select: { plan: true, name: true, email: true },
     });
+
+    const userEmail = user?.email || "";
 
     const userPlan = user?.plan || "Free";
     const planLevel = PLAN_LEVELS[userPlan] ?? 0;
@@ -135,7 +137,7 @@ export default async function TeamPage() {
                 </div>
 
                 {/* Section 1: Invite Form */}
-                <InviteForm userPlan={userPlan} memberCount={members.length} />
+                <InviteForm userPlan={userPlan} memberCount={members.length} currentUserEmail={userEmail} />
 
                 {/* Section 2: Team Members Table */}
                 <TeamTable members={members as any} canInvite={canAccess} />
@@ -148,7 +150,9 @@ export default async function TeamPage() {
                 />
 
                 {/* Section 4: Activity Log */}
-                <ActivityLog logs={logs as any} isEnterprise={isEnterprise} />
+                {members.length > 0 && (
+                    <ActivityLog logs={logs as any} isEnterprise={isEnterprise} />
+                )}
             </main>
         </div>
     );

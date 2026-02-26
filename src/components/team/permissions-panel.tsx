@@ -54,39 +54,41 @@ const PERMISSION_ITEMS = [
 
 export function PermissionsPanel({ userPlan, initialPermissions, hasMembers }: PermissionsPanelProps) {
     const [permissions, setPermissions] = useState<Permissions>(initialPermissions);
-    const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
-    const [dirty, setDirty] = useState(false);
+    const [savingKey, setSavingKey] = useState<keyof Permissions | null>(null);
 
     const planLevel = { Free: 0, Basic: 1, Premium: 2, Enterprise: 3 }[userPlan] ?? 0;
     const isEnterprise = planLevel >= 3;
     const canAccess = planLevel >= 2;
 
-    const handleToggle = (key: keyof Permissions) => {
-        setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
-        setSaved(false);
-        setDirty(true);
-    };
+    const handleToggle = async (key: keyof Permissions) => {
+        const newValue = !permissions[key];
+        const newPermissions = { ...permissions, [key]: newValue };
+        setPermissions(newPermissions);
 
-    const handleSave = async () => {
-        setSaving(true);
+        setSavingKey(key);
         try {
-            const result = await updatePermissions(permissions);
+            const result = await updatePermissions(newPermissions);
             if (result.success) {
-                toast.success('Permissions saved');
-                setSaved(true);
-                setDirty(false);
+                toast.success('Permissions auto-saved', {
+                    position: 'bottom-right',
+                    className: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                });
             } else {
                 toast.error(result.error || 'Failed to save permissions');
+                setPermissions(permissions); // revert
             }
         } catch {
             toast.error('Failed to save permissions');
+            setPermissions(permissions); // revert
         } finally {
-            setSaving(false);
+            setSavingKey(null);
         }
     };
 
     if (!canAccess) return null;
+
+    const defaultItems = PERMISSION_ITEMS.filter(item => !item.enterpriseOnly);
+    const advancedItems = PERMISSION_ITEMS.filter(item => item.enterpriseOnly);
 
     return (
         <section className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
@@ -100,84 +102,112 @@ export function PermissionsPanel({ userPlan, initialPermissions, hasMembers }: P
                 </div>
             </div>
 
-            <div className="p-8 space-y-1">
-                {PERMISSION_ITEMS.map((item) => {
-                    // Enterprise-only items are locked for non-Enterprise users
-                    const isLocked = item.enterpriseOnly && !isEnterprise;
-                    const checked = permissions[item.key];
+            <div className="p-8 pb-4">
+                <div className="mb-4">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 mb-1">Default Team Permissions</h3>
+                    <p className="text-xs font-medium text-slate-400">These permissions are automatically granted to all team members.</p>
+                </div>
 
-                    return (
-                        <div
-                            key={item.key}
-                            className={`flex items-center justify-between p-4 rounded-xl transition-colors ${isLocked ? 'opacity-60' : 'hover:bg-slate-50 cursor-pointer'}`}
-                            onClick={() => !isLocked && handleToggle(item.key)}
-                        >
-                            <div className="flex-1 min-w-0 mr-4">
-                                <div className="flex items-center gap-2">
-                                    <p className="text-sm font-bold text-[#0f172a]">{item.label}</p>
-                                    {isLocked && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-lg border border-amber-100">
-                                            <Lock className="w-2.5 h-2.5" />
-                                            Enterprise
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs text-slate-500 mt-0.5">
-                                    {item.description}
-                                    {isLocked && ' · '}
-                                    {isLocked && <a href="/upgrade" className="text-amber-600 font-bold hover:underline">Upgrade to unlock</a>}
-                                </p>
-                            </div>
+                <div className="space-y-1 bg-slate-50/50 rounded-2xl border border-slate-100 p-2">
+                    {defaultItems.map((item) => {
+                        const checked = permissions[item.key];
+                        const isSaving = savingKey === item.key;
 
-                            {/* Toggle Switch */}
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!isLocked) handleToggle(item.key);
-                                }}
-                                disabled={isLocked}
-                                aria-label={`Toggle ${item.label}`}
-                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${isLocked ? 'bg-slate-200 cursor-not-allowed' :
-                                        checked ? 'bg-emerald-500 cursor-pointer' : 'bg-slate-300 cursor-pointer'
-                                    }`}
+                        return (
+                            <div
+                                key={item.key}
+                                className="flex items-center justify-between p-4 rounded-xl transition-colors hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 cursor-pointer group"
+                                onClick={() => handleToggle(item.key)}
                             >
-                                <span
-                                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'
+                                <div className="flex-1 min-w-0 mr-4">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm font-bold text-[#0f172a] group-hover:text-[#1e3a8a] transition-colors">{item.label}</p>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-0.5">{item.description}</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleToggle(item.key); }}
+                                    aria-label={`Toggle ${item.label}`}
+                                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 flex items-center justify-center ${isSaving ? 'bg-slate-300 cursor-wait' :
+                                            checked ? 'bg-emerald-500 cursor-pointer' : 'bg-slate-300 cursor-pointer'
                                         }`}
-                                />
-                            </button>
-                        </div>
-                    );
-                })}
+                                >
+                                    {isSaving ? (
+                                        <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.1)] transition-transform duration-300 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    )}
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
-            <div className="px-8 pb-8">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={saving || !dirty}
-                    className={`w-full py-3 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg ${dirty
-                            ? 'bg-[#1e3a8a] text-white hover:bg-[#162d6e] shadow-blue-900/10'
-                            : saved
-                                ? 'bg-emerald-500 text-white shadow-emerald-500/10'
-                                : 'bg-slate-200 text-slate-500 shadow-none cursor-not-allowed'
-                        }`}
-                >
-                    {saving ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : saved ? (
-                        <>
-                            <Check className="w-4 h-4" />
-                            Saved
-                        </>
-                    ) : (
-                        <>
-                            <Save className="w-4 h-4" />
-                            Save Changes
-                        </>
+            <div className="px-8 pb-8 pt-4">
+                <div className="mb-4 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-amber-500" />
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Advanced Permissions</h3>
+                </div>
+
+                <div className="space-y-1 bg-gradient-to-br from-amber-50/50 to-orange-50/30 rounded-2xl border border-amber-100/50 p-2 relative overflow-hidden">
+                    {!isEnterprise && (
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
                     )}
-                </button>
+
+                    {advancedItems.map((item) => {
+                        const isLocked = !isEnterprise;
+                        const checked = permissions[item.key];
+                        const isSaving = savingKey === item.key;
+
+                        return (
+                            <div
+                                key={item.key}
+                                className={`flex items-center justify-between p-4 rounded-xl transition-colors ${isLocked ? 'opacity-60 grayscale-[0.5]' : 'hover:bg-white hover:shadow-sm border border-transparent hover:border-amber-100/50 cursor-pointer group'}`}
+                                onClick={() => !isLocked && handleToggle(item.key)}
+                            >
+                                <div className="flex-1 min-w-0 mr-4">
+                                    <div className="flex items-center gap-2">
+                                        <p className={`text-sm font-bold ${isLocked ? 'text-slate-700' : 'text-[#0f172a] group-hover:text-amber-700 transition-colors'}`}>{item.label}</p>
+                                        {isLocked && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-amber-600 text-[10px] font-bold rounded-lg border border-amber-200 uppercase tracking-widest">
+                                                Enterprise
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                        {item.description}
+                                        {isLocked && (
+                                            <>
+                                                <br />
+                                                <a href="/upgrade" className="text-amber-600 font-bold hover:underline inline-flex items-center gap-1 mt-1">
+                                                    Upgrade to unlock <span className="text-[10px]">→</span>
+                                                </a>
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); if (!isLocked) handleToggle(item.key); }}
+                                    disabled={isLocked || isSaving}
+                                    aria-label={`Toggle ${item.label}`}
+                                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 flex items-center justify-center ${isLocked ? 'bg-slate-200 cursor-not-allowed' :
+                                            isSaving ? 'bg-slate-300 cursor-wait' :
+                                                checked ? 'bg-amber-500 cursor-pointer' : 'bg-slate-300 cursor-pointer'
+                                        }`}
+                                >
+                                    {isSaving ? (
+                                        <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.1)] transition-transform duration-300 ${checked && !isLocked ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    )}
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </section>
     );

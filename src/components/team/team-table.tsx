@@ -83,32 +83,47 @@ export function TeamTable({ members, canInvite }: TeamTableProps) {
     // Empty state
     if (members.length === 0) {
         return (
-            <section className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-                <div className="p-8 border-b border-slate-100 flex items-center gap-4">
+            <section className="bg-white/70 backdrop-blur-xl rounded-3xl border border-dashed border-slate-300 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+                <div className="p-8 border-b border-slate-100/50 flex items-center gap-4 bg-slate-50/50">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
                         <Users className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black text-[#0f172a] tracking-tight">My Case Team</h2>
-                        <p className="text-sm font-medium text-slate-500">0 members</p>
+                        <h2 className="text-xl font-black text-[#0f172a] tracking-tight">Your Team Dashboard</h2>
+                        <p className="text-sm font-medium text-slate-500">Awaiting your first connection</p>
                     </div>
                 </div>
-                <div className="p-12">
-                    <div className="flex flex-col items-center text-center max-w-md mx-auto">
-                        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center mb-6 border border-blue-100">
-                            <Users className="w-10 h-10 text-[#1e3a8a]/40" />
+                <div className="p-12 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-slate-100/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+
+                    <div className="flex flex-col items-center text-center max-w-lg mx-auto relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200 mb-6 group-hover:bg-slate-200 transition-colors">
+                            <Users className="w-8 h-8 text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-bold text-[#0f172a] mb-2">No team members yet</h3>
-                        <p className="text-sm text-slate-500 leading-relaxed mb-6">
-                            Invite your immigration attorney to collaborate on your case. They'll be able to view evidence, download reports, and provide expert guidance.
-                        </p>
+                        <h3 className="text-xl font-bold text-[#0f172a] mb-4">Once you invite a team member, you'll see them here with:</h3>
+
+                        <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-8 text-left space-y-4">
+                            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                                <div className="w-8 h-8 bg-slate-200 rounded-full flex-shrink-0" />
+                                <div className="space-y-1 flex-1">
+                                    <div className="w-1/3 h-2 bg-slate-200 rounded" />
+                                    <div className="w-1/4 h-2 bg-slate-100 rounded" />
+                                </div>
+                            </div>
+                            <ul className="space-y-3 pl-2">
+                                <li className="flex items-center gap-2 text-sm text-slate-500 font-medium"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Name and assigned role</li>
+                                <li className="flex items-center gap-2 text-sm text-slate-500 font-medium"><div className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Current invitation status</li>
+                                <li className="flex items-center gap-2 text-sm text-slate-500 font-medium"><div className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Quick actions to edit or remove</li>
+                            </ul>
+                        </div>
+
                         {canInvite && (
                             <button
                                 type="button"
                                 onClick={scrollToInviteForm}
-                                className="px-6 py-2.5 bg-[#1e3a8a] text-white font-bold text-sm rounded-xl hover:bg-[#162d6e] transition-all shadow-lg shadow-blue-900/10"
+                                className="px-6 py-3 bg-white border-2 border-[#1e3a8a] text-[#1e3a8a] font-bold text-sm rounded-xl hover:bg-blue-50 transition-all shadow-sm flex items-center gap-2 group"
                             >
-                                Invite First Member
+                                <span className="group-hover:-translate-y-0.5 transition-transform">Invite Your First Team Member</span>
                             </button>
                         )}
                     </div>
