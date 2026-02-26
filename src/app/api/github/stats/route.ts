@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth' // Changed from 'next-auth' to '@/auth' to work with v5
 import { Octokit } from '@octokit/rest'
+import { prisma } from '@/lib/prisma'
+import { saveEvidenceRecord } from '@/app/actions/upload'
 
 export async function GET() {
     const session = await auth()
 
-    // @ts-ignore
+    // @ts-expect-error - session.accessToken is not typed in next-auth by default
     if (!session?.accessToken) {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // @ts-ignore
+    // @ts-expect-error - session.accessToken is not typed in next-auth by default
     const octokit = new Octokit({ auth: session.accessToken })
 
     try {
@@ -36,6 +38,50 @@ export async function GET() {
         // Get commit count (approximate from contributions)
         const { data: user } = await octokit.users.getAuthenticated()
 
+        // ---------------------------------------------------------
+        // HIGHLIGHT: High Impact Narrative Generation & Auto-Save
+        // ---------------------------------------------------------
+        const highImpactRepos = repos.filter((r: any) => r.stargazers_count >= 100)
+
+        let impactNarrative = null;
+
+        if (highImpactRepos.length > 0) {
+            const sumHighImpactStars = highImpactRepos.reduce((sum: number, r: any) => sum + r.stargazers_count, 0)
+            impactNarrative = `Contributed to ${highImpactRepos.length} open source project(s) with ${sumHighImpactStars}+ total stars. Top project: ${highImpactRepos[0]?.name} (${highImpactRepos[0]?.stargazers_count} stars).`
+
+            const userId = session?.user?.id;
+
+            // Check if we already saved this to avoid duplicates
+            if (userId) {
+                const existingEvidence = await prisma.evidenceItem.findFirst({
+                    where: {
+                        userId: userId,
+                        sourceType: 'GitHub',
+                        criterionId: 'contributions',
+                        title: 'GitHub Open Source Impact'
+                    }
+                })
+
+                if (!existingEvidence) {
+                    // Auto-save this as evidence
+                    await saveEvidenceRecord({
+                        title: 'GitHub Open Source Impact',
+                        description: impactNarrative,
+                        url: user.html_url,
+                        filePath: '',
+                        criterionId: 'contributions',
+                        sourceType: 'GitHub',
+                        sourceDate: new Date(),
+                        metrics: {
+                            highImpactRepoCount: highImpactRepos.length,
+                            totalStars: sumHighImpactStars,
+                            topRepo: highImpactRepos[0]?.name
+                        }
+                    })
+                }
+            }
+        }
+
         return NextResponse.json({
             username: user.login,
             totalRepos: repos.length,
@@ -58,6 +104,7 @@ export async function GET() {
             publicRepos: user.public_repos,
             followers: user.followers,
             following: user.following,
+            impactNarrative // Send back to UI for visibility
         })
     } catch (error: any) {
         console.error('GitHub API error:', error.message || error)

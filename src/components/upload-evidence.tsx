@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CloudUpload, X, FileText, Trash2, Calendar, Link as LinkIcon, ChevronDown, CheckCircle2, Lock } from 'lucide-react';
+import { CloudUpload, X, FileText, Trash2, Calendar, Link as LinkIcon, ChevronDown, CheckCircle2, Lock, Search, GraduationCap, Loader2, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +33,20 @@ export const UploadEvidence: React.FC<UploadEvidenceProps> = ({ onClose }) => {
         date: ''
     });
     const [confirmed, setConfirmed] = useState(false);
+
+    // Google Scholar State
+    const [showScholarModal, setShowScholarModal] = useState(false);
+    const [scholarSearchQuery, setScholarSearchQuery] = useState('');
+    const [isSearchingScholar, setIsSearchingScholar] = useState(false);
+    const [scholarResults, setScholarResults] = useState<any[]>([]);
+    const [selectedPublications, setSelectedPublications] = useState<Set<string>>(new Set());
+
+    // USPTO State
+    const [showPatentModal, setShowPatentModal] = useState(false);
+    const [patentSearchQuery, setPatentSearchQuery] = useState('');
+    const [isSearchingPatent, setIsSearchingPatent] = useState(false);
+    const [patentResults, setPatentResults] = useState<any[]>([]);
+    const [selectedPatents, setSelectedPatents] = useState<Set<string>>(new Set());
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -99,6 +113,124 @@ export const UploadEvidence: React.FC<UploadEvidenceProps> = ({ onClose }) => {
         }
     };
 
+    const handleSearchScholar = async () => {
+        if (!scholarSearchQuery) return;
+        setIsSearchingScholar(true);
+        try {
+            const res = await fetch(`/api/scholar?name=${encodeURIComponent(scholarSearchQuery)}`);
+            if (!res.ok) throw new Error('Failed to fetch scholar data');
+            const data = await res.json();
+            setScholarResults(data.publications || []);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to search Google Scholar");
+        } finally {
+            setIsSearchingScholar(false);
+        }
+    };
+
+    const togglePublication = (id: string) => {
+        const newSet = new Set(selectedPublications);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedPublications(newSet);
+    };
+
+    const handleImportScholar = async () => {
+        if (selectedPublications.size === 0) return;
+        setUploading(true);
+        setShowScholarModal(false);
+
+        try {
+            const selectedDocs = scholarResults.filter(p => selectedPublications.has(p.id));
+
+            for (const doc of selectedDocs) {
+                await saveEvidenceRecord({
+                    title: doc.title,
+                    description: `Authors: ${doc.authors}. Cited by: ${doc.cited_by}`,
+                    url: doc.link,
+                    filePath: '', // Scholar items do not have an initial file
+                    criterionId: 'authorship', // Assuming criterion 6 is authorship
+                    sourceType: 'Scholar',
+                    sourceDate: doc.year ? new Date(`${doc.year}-01-01`) : undefined,
+                    metrics: { cited_by: doc.cited_by, authors: doc.authors, year: doc.year }
+                });
+            }
+            toast.success(`Successfully imported ${selectedDocs.length} publications`);
+            setSelectedPublications(new Set());
+            setScholarResults([]);
+            setScholarSearchQuery('');
+            if (onClose) onClose(); else router.back();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to import publications");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleSearchPatent = async () => {
+        if (!patentSearchQuery) return;
+        setIsSearchingPatent(true);
+        try {
+            const res = await fetch(`/api/uspto?name=${encodeURIComponent(patentSearchQuery)}`);
+            if (!res.ok) throw new Error('Failed to fetch patent data');
+            const data = await res.json();
+            setPatentResults(data.patents || []);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to search USPTO Patents");
+        } finally {
+            setIsSearchingPatent(false);
+        }
+    };
+
+    const togglePatent = (id: string) => {
+        const newSet = new Set(selectedPatents);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedPatents(newSet);
+    };
+
+    const handleImportPatent = async () => {
+        if (selectedPatents.size === 0) return;
+        setUploading(true);
+        setShowPatentModal(false);
+
+        try {
+            const selectedDocs = patentResults.filter(p => selectedPatents.has(p.id));
+
+            for (const doc of selectedDocs) {
+                await saveEvidenceRecord({
+                    title: doc.title,
+                    description: `Patent #${doc.number}. Inventors: ${doc.inventors}. Assignee: ${doc.assignees}`,
+                    url: doc.url,
+                    filePath: '', // Patent items do not have an initial file
+                    criterionId: 'contributions', // Assuming criterion 5 is Original Contributions
+                    sourceType: 'USPTO',
+                    sourceDate: doc.date ? new Date(doc.date) : undefined,
+                    metrics: { patent_number: doc.number, inventors: doc.inventors, assignees: doc.assignees, date: doc.date }
+                });
+            }
+            toast.success(`Successfully imported ${selectedDocs.length} patents`);
+            setSelectedPatents(new Set());
+            setPatentResults([]);
+            setPatentSearchQuery('');
+            if (onClose) onClose(); else router.back();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to import patents");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     return (
         <div className="pt-32 lg:pt-28 pb-12 px-4 lg:px-8 max-w-4xl mx-auto">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
@@ -128,24 +260,43 @@ export const UploadEvidence: React.FC<UploadEvidenceProps> = ({ onClose }) => {
                     </div>
 
                     {/* Criterion Selection */}
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Select Criterion</label>
-                        <div className="relative">
-                            <select
-                                value={formData.criterion}
-                                onChange={(e) => setFormData({ ...formData, criterion: e.target.value })}
-                                className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 appearance-none focus:ring-2 focus:ring-[#1e3a8a] outline-none font-bold text-[#1e293b] text-sm lg:text-base"
+                    <div className="flex flex-col sm:flex-row gap-4 items-end">
+                        <div className="flex-grow w-full">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Select Criterion</label>
+                            <div className="relative">
+                                <select
+                                    value={formData.criterion}
+                                    onChange={(e) => setFormData({ ...formData, criterion: e.target.value })}
+                                    className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 appearance-none focus:ring-2 focus:ring-[#1e3a8a] outline-none font-bold text-[#1e293b] text-sm lg:text-base"
+                                >
+                                    <option value="awards">Awards (Criterion 1)</option>
+                                    <option value="memberships">Memberships (Criterion 2)</option>
+                                    <option value="published_material">Published Material (Criterion 3)</option>
+                                    <option value="judging">Judging (Criterion 4)</option>
+                                    <option value="contributions">Original Contributions (Criterion 5)</option>
+                                    <option value="authorship">Authorship (Criterion 6)</option>
+                                    <option value="leading_role">Leading Role (Criterion 7)</option>
+                                    <option value="salary">High Salary (Criterion 8)</option>
+                                </select>
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button
+                                onClick={() => setShowScholarModal(true)}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#f8fafc] border border-slate-200 hover:border-[#1e3a8a] hover:bg-slate-50 text-[#1e293b] px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap"
                             >
-                                <option value="awards">Awards (Criterion 1)</option>
-                                <option value="memberships">Memberships (Criterion 2)</option>
-                                <option value="published_material">Published Material (Criterion 3)</option>
-                                <option value="judging">Judging (Criterion 4)</option>
-                                <option value="contributions">Original Contributions (Criterion 5)</option>
-                                <option value="authorship">Authorship (Criterion 6)</option>
-                                <option value="leading_role">Leading Role (Criterion 7)</option>
-                                <option value="salary">High Salary (Criterion 8)</option>
-                            </select>
-                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                <GraduationCap className="w-5 h-5 text-[#1e3a8a]" />
+                                Scholar
+                            </button>
+                            <button
+                                onClick={() => setShowPatentModal(true)}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#f8fafc] border border-slate-200 hover:border-[#f59e0b] hover:bg-slate-50 text-[#1e293b] px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap"
+                            >
+                                <Lightbulb className="w-5 h-5 text-[#f59e0b]" />
+                                Patents
+                            </button>
                         </div>
                     </div>
 
@@ -279,6 +430,203 @@ export const UploadEvidence: React.FC<UploadEvidenceProps> = ({ onClose }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Google Scholar Modal */}
+            <AnimatePresence>
+                {showScholarModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+                                        <GraduationCap className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-lg text-slate-900">Import from Google Scholar</h3>
+                                        <p className="text-xs text-slate-500 font-medium">Search to auto-populate authorship evidence</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowScholarModal(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 flex-grow overflow-y-auto space-y-6">
+                                <div className="flex gap-3">
+                                    <div className="relative flex-grow">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter author name..."
+                                            value={scholarSearchQuery}
+                                            onChange={(e) => setScholarSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSearchScholar()}
+                                            className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl pl-11 pr-4 py-3 focus:ring-2 focus:ring-[#1e3a8a] outline-none font-medium"
+                                        />
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    </div>
+                                    <button
+                                        onClick={handleSearchScholar}
+                                        disabled={isSearchingScholar || !scholarSearchQuery}
+                                        className="bg-[#1e3a8a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-[#1e40af] transition-all disabled:opacity-50"
+                                    >
+                                        {isSearchingScholar ? <Loader2 className="w-5 h-5 animate-spin" /> : "Search"}
+                                    </button>
+                                </div>
+
+                                {scholarResults.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">
+                                            <span>Found {scholarResults.length} Publications</span>
+                                            <span>{selectedPublications.size} Selected</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {scholarResults.map((pub) => (
+                                                <div
+                                                    key={pub.id}
+                                                    onClick={() => togglePublication(pub.id)}
+                                                    className={`p-4 border rounded-xl flex gap-4 cursor-pointer transition-all ${selectedPublications.has(pub.id) ? 'border-[#1e3a8a] bg-blue-50/50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
+                                                >
+                                                    <div className="mt-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedPublications.has(pub.id)}
+                                                            onChange={() => { }} // handled by parent div click
+                                                            className="w-4 h-4 rounded border-slate-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900 text-sm">{pub.title}</h4>
+                                                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">{pub.authors}</p>
+                                                        <div className="flex gap-4 mt-2 text-xs font-bold text-slate-600">
+                                                            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {pub.year || 'N/A'}</span>
+                                                            <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> {pub.cited_by} Citations</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                                <button onClick={() => setShowScholarModal(false)} className="px-6 py-2.5 text-slate-600 font-bold hover:text-slate-900">Cancel</button>
+                                <button
+                                    onClick={handleImportScholar}
+                                    disabled={selectedPublications.size === 0 || uploading}
+                                    className="px-6 py-2.5 bg-[#1e3a8a] text-white font-bold rounded-xl hover:bg-[#1e40af] disabled:opacity-50 transition-all shadow-md flex items-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+                                    Import Selected
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* USPTO Patents Modal */}
+            <AnimatePresence>
+                {showPatentModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+                                        <Lightbulb className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-lg text-slate-900">Import from USPTO</h3>
+                                        <p className="text-xs text-slate-500 font-medium">Search by inventor or assignee name</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowPatentModal(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 flex-grow overflow-y-auto space-y-6">
+                                <div className="flex gap-3">
+                                    <div className="relative flex-grow">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter inventor name..."
+                                            value={patentSearchQuery}
+                                            onChange={(e) => setPatentSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSearchPatent()}
+                                            className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl pl-11 pr-4 py-3 focus:ring-2 focus:ring-[#f59e0b] outline-none font-medium"
+                                        />
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    </div>
+                                    <button
+                                        onClick={handleSearchPatent}
+                                        disabled={isSearchingPatent || !patentSearchQuery}
+                                        className="bg-[#f59e0b] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-[#d97706] transition-all disabled:opacity-50"
+                                    >
+                                        {isSearchingPatent ? <Loader2 className="w-5 h-5 animate-spin" /> : "Search"}
+                                    </button>
+                                </div>
+
+                                {patentResults.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">
+                                            <span>Found {patentResults.length} Patents</span>
+                                            <span>{selectedPatents.size} Selected</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {patentResults.map((pub) => (
+                                                <div
+                                                    key={pub.id}
+                                                    onClick={() => togglePatent(pub.id)}
+                                                    className={`p-4 border rounded-xl flex gap-4 cursor-pointer transition-all ${selectedPatents.has(pub.id) ? 'border-[#f59e0b] bg-amber-50/50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
+                                                >
+                                                    <div className="mt-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedPatents.has(pub.id)}
+                                                            onChange={() => { }} // handled by parent div click
+                                                            className="w-4 h-4 rounded border-slate-300 text-[#f59e0b] focus:ring-[#f59e0b]"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900 text-sm">{pub.title}</h4>
+                                                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">Inventors: {pub.inventors}</p>
+                                                        <div className="flex gap-4 mt-2 text-xs font-bold text-slate-600">
+                                                            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {pub.date || 'N/A'}</span>
+                                                            <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> US{pub.number}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                                <button onClick={() => setShowPatentModal(false)} className="px-6 py-2.5 text-slate-600 font-bold hover:text-slate-900">Cancel</button>
+                                <button
+                                    onClick={handleImportPatent}
+                                    disabled={selectedPatents.size === 0 || uploading}
+                                    className="px-6 py-2.5 bg-[#f59e0b] text-white font-bold rounded-xl hover:bg-[#d97706] disabled:opacity-50 transition-all shadow-md flex items-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+                                    Import Selected
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

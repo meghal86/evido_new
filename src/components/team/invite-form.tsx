@@ -145,7 +145,7 @@ export function InviteForm({ userPlan, memberCount, currentUserEmail }: InviteFo
                             }}
                             placeholder="Enter attorney's email address"
                             disabled={fieldsDisabled}
-                            className={`w-full px-4 py-3 bg-white border ${emailError ? 'border-red-400 focus:ring-red-400/20' : 'border-slate-300 focus:ring-[#1e3a8a]/20'} focus:border-[#1e3a8a] rounded-xl text-sm focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`w-full px-4 py-3 bg-white border ${emailError ? 'border-red-400 focus:ring-red-400/20' : 'border-slate-300 focus:ring-[#1e3a8a]/20'} focus:border-[#1e3a8a] rounded-xl text-sm text-[#1f2937] placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                         />
                         {email && !fieldsDisabled && (
                             <button type="button" onClick={() => setEmail('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">

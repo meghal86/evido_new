@@ -12,7 +12,8 @@ export async function saveEvidenceRecord(data: {
     sourceDate?: Date,
     sourceType?: string,
     exhibitId?: string,
-    extractedText?: string
+    extractedText?: string,
+    metrics?: any
 }) {
     const session = await auth()
     if (!session?.user?.id) throw new Error("Unauthorized")
@@ -30,7 +31,8 @@ export async function saveEvidenceRecord(data: {
             sourceType: data.sourceType,
             exhibitId: data.exhibitId,
             attorneyStatus: 'draft', // Default status
-            extractedText: data.extractedText
+            extractedText: data.extractedText,
+            metrics: data.metrics
         }
     })
 
