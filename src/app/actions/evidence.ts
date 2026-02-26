@@ -76,7 +76,7 @@ export async function syncGitHubEvidence() {
 
         if (!token) return { error: "No GitHub connection found" };
 
-        const repos = await getUserRepos(token);
+        const repos = await getUserRepos(token, session.user.id);
         if (!repos || repos.length === 0) return { success: true, count: 0 };
 
         let createdCount = 0;

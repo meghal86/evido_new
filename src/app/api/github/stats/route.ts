@@ -59,8 +59,19 @@ export async function GET() {
             followers: user.followers,
             following: user.following,
         })
-    } catch (error) {
-        console.error('GitHub API error:', error)
+    } catch (error: any) {
+        console.error('GitHub API error:', error.message || error)
+        if (error.status === 401 && session?.user?.id) {
+            try {
+                const { prisma } = await import("@/lib/prisma");
+                await prisma.account.deleteMany({
+                    where: { userId: session.user.id, provider: 'github' }
+                });
+                console.log(`Unlinked invalid GitHub account for user ${session.user.id} in API route`);
+            } catch (dbError) {
+                console.error("Failed to unlink GitHub account:", dbError);
+            }
+        }
         return NextResponse.json({ error: 'Failed to fetch GitHub data' }, { status: 500 })
     }
 }

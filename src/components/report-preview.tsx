@@ -138,8 +138,8 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initial
                                                             <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                                                                 <div className="flex items-center gap-3">
                                                                     <div className={`w-2 h-8 rounded-full ${item.status === 'Strong' ? 'bg-emerald-500' :
-                                                                            item.status === 'Good' ? 'bg-blue-500' :
-                                                                                item.status === 'Medium' ? 'bg-amber-500' : 'bg-slate-300'
+                                                                        item.status === 'Good' ? 'bg-blue-500' :
+                                                                            item.status === 'Medium' ? 'bg-amber-500' : 'bg-slate-300'
                                                                         }`} />
                                                                     <div>
                                                                         <div className="font-bold text-slate-800 capitalize">{item.id}</div>
@@ -186,7 +186,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initial
                         <div className="space-y-6">
                             <div className="p-8 bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] rounded-[2.5rem] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/20">
                                 <div className="flex justify-between items-center mb-6 relative z-10">
-                                    <span className="text-xs font-black uppercase tracking-[0.2em] text-blue-200/60">Executive Plan</span>
+                                    <span className="text-xs font-black uppercase tracking-[0.2em] text-blue-200/60">Full Analysis Report</span>
                                     <span className="text-3xl font-black">$99</span>
                                 </div>
 

@@ -1,12 +1,11 @@
 import { Octokit } from "octokit";
 
-export async function getGitHubStats(accessToken: string) {
+export async function getGitHubStats(accessToken: string, userId?: string) {
     const octokit = new Octokit({ auth: accessToken });
 
     try {
         const { data: user } = await octokit.rest.users.getAuthenticated();
 
-        // Fetch more repos for accurate stats
         // Fetch more repos for accurate stats
         const repos = await octokit.paginate(octokit.rest.repos.listForAuthenticatedUser, {
             sort: "updated",
@@ -27,14 +26,24 @@ export async function getGitHubStats(accessToken: string) {
                 url: r.html_url
             }))
         };
-        // ... (previous getGitHubStats implementation) ...
-    } catch (error) {
-        console.error("GitHub API Error:", error);
+    } catch (error: any) {
+        console.error("GitHub API Error:", error.message || error);
+        if (error.status === 401 && userId) {
+            try {
+                const { prisma } = await import("@/lib/prisma");
+                await prisma.account.deleteMany({
+                    where: { userId, provider: 'github' }
+                });
+                console.log(`Unlinked invalid GitHub account for user ${userId}`);
+            } catch (dbError) {
+                console.error("Failed to unlink GitHub account:", dbError);
+            }
+        }
         return null;
     }
 }
 
-export async function getUserRepos(accessToken: string) {
+export async function getUserRepos(accessToken: string, userId?: string) {
     if (!accessToken) return [];
 
     const octokit = new Octokit({ auth: accessToken });
@@ -58,13 +67,24 @@ export async function getUserRepos(accessToken: string) {
             category: (repo.stargazers_count || 0) > 50 ? "High Impact" :
                 repo.fork ? "Contribution" : "Original Work"
         }));
-    } catch (error) {
-        console.error("GitHub API Error:", error);
+    } catch (error: any) {
+        console.error("GitHub API Error:", error.message || error);
+        if (error.status === 401 && userId) {
+            try {
+                const { prisma } = await import("@/lib/prisma");
+                await prisma.account.deleteMany({
+                    where: { userId, provider: 'github' }
+                });
+                console.log(`Unlinked invalid GitHub account for user ${userId}`);
+            } catch (dbError) {
+                console.error("Failed to unlink GitHub account:", dbError);
+            }
+        }
         return [];
     }
 }
 
-export async function getFullGitHubProfile(accessToken: string) {
+export async function getFullGitHubProfile(accessToken: string, userId?: string) {
     const octokit = new Octokit({ auth: accessToken });
 
     try {
@@ -118,8 +138,19 @@ export async function getFullGitHubProfile(accessToken: string) {
             },
             topRepos,
         };
-    } catch (error) {
-        console.error("GitHub Profile API Error:", error);
+    } catch (error: any) {
+        console.error("GitHub Profile API Error:", error.message || error);
+        if (error.status === 401 && userId) {
+            try {
+                const { prisma } = await import("@/lib/prisma");
+                await prisma.account.deleteMany({
+                    where: { userId, provider: 'github' }
+                });
+                console.log(`Unlinked invalid GitHub account for user ${userId}`);
+            } catch (dbError) {
+                console.error("Failed to unlink GitHub account:", dbError);
+            }
+        }
         return null;
     }
 }

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { createCheckoutSession } from "@/app/actions/stripe";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 
 interface UpgradePlansProps {
     onSelect?: (plan: string) => void;
@@ -69,6 +69,62 @@ export const UpgradePlans: React.FC<UpgradePlansProps> = ({ onSelect, userPlan =
                         Current Plan: {userPlan}
                     </div>
                 )}
+            </div>
+
+            {/* Sample Report Preview Segment */}
+            <div className="mb-20 bg-white rounded-3xl border border-slate-200 shadow-sm p-8 flex flex-col md:flex-row items-center gap-8 overflow-hidden group">
+                <div className="w-full md:w-1/2 flex items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-100 relative group-hover:bg-slate-100 transition-colors">
+                    {/* Blurred document placeholder */}
+                    <div className="w-full max-w-sm aspect-[3/4] bg-white rounded-xl shadow-md border border-slate-200 p-6 flex flex-col gap-4 relative overflow-hidden">
+                        <div className="w-1/3 h-4 bg-slate-200 rounded animate-pulse" />
+                        <div className="w-2/3 h-8 bg-slate-300 rounded mb-4" />
+
+                        <div className="flex-1 filter blur-[4px] opacity-70 space-y-4">
+                            <div className="w-full h-3 bg-slate-200 rounded" />
+                            <div className="w-5/6 h-3 bg-slate-200 rounded" />
+                            <div className="w-full h-3 bg-slate-200 rounded" />
+                            <div className="w-4/6 h-3 bg-slate-200 rounded" />
+                            <div className="w-full h-12 bg-blue-50/50 rounded flex gap-2 p-2 mt-4 mt-8">
+                                <div className="w-8 h-8 bg-blue-200 rounded-full" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="w-1/2 h-2 bg-blue-200 rounded" />
+                                    <div className="w-1/4 h-2 bg-blue-200 rounded" />
+                                </div>
+                            </div>
+                            <div className="w-full h-3 bg-slate-200 rounded mt-4" />
+                            <div className="w-5/6 h-3 bg-slate-200 rounded" />
+                        </div>
+
+                        {/* Lock Overlay */}
+                        <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex items-center justify-center flex-col transition-all duration-300 group-hover:backdrop-blur-[1px]">
+                            <div className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-3">
+                                <Lock className="w-8 h-8 text-amber-500" />
+                            </div>
+                            <span className="text-xs font-black uppercase tracking-widest text-[#1e293b] bg-white px-3 py-1 rounded-full shadow-sm">Sample Report</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="w-full md:w-1/2">
+                    <h3 className="text-2xl font-black text-[#1e293b] mb-4">See exactly what you get.</h3>
+                    <p className="text-slate-500 font-medium leading-relaxed mb-6">
+                        Our Full Analysis Reports are generated using attorney-vetted logic, evaluating your evidence exactly like USCIS officers do. You get a downloadable PDF detailing every gap, strong point, and a tailored strategy to build your case.
+                    </p>
+                    <ul className="space-y-3 mb-8">
+                        <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                            <Check className="w-4 h-4 text-emerald-500" /> 10-Criterion Mapping
+                        </li>
+                        <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                            <Check className="w-4 h-4 text-emerald-500" /> Probability Scores for EB-1A, O-1, NIW
+                        </li>
+                        <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                            <Check className="w-4 h-4 text-emerald-500" /> AI-Drafted Cover Letter Excerpts
+                        </li>
+                    </ul>
+                    <a href="#plans" className="inline-flex items-center gap-2 text-sm font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest transition-colors">
+                        View Packages <ChevronRight className="w-4 h-4" />
+                    </a>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

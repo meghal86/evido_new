@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { HelpCircle, Search, Bell } from 'lucide-react';
 import { ReadinessBreakdown } from './readiness-breakdown';
 
 interface HeaderProps {
@@ -53,6 +54,34 @@ export const Header: React.FC<HeaderProps> = ({ title, progress, breakdownData }
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Online</span>
                 </div>
+            </div>
+
+            <div className="flex-grow flex justify-end mr-4 lg:mr-6 gap-2">
+                <button
+                    onClick={() => { }}
+                    className="p-2 border border-slate-200/50 bg-white rounded-full text-slate-400 hover:text-[#1e3a8a] hover:bg-slate-50 transition-colors hidden md:flex"
+                    title="Search (Coming Soon)"
+                >
+                    <Search className="w-4 h-4" />
+                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => { }}
+                        className="p-2 border border-slate-200/50 bg-white rounded-full text-slate-400 hover:text-[#1e3a8a] hover:bg-slate-50 transition-colors"
+                        title="Notifications"
+                    >
+                        <Bell className="w-4 h-4" />
+                    </button>
+                    {/* Notification Dot */}
+                    <div className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
+                </div>
+                <button
+                    onClick={() => window.open('mailto:support@evido.dev')}
+                    className="p-2 border border-slate-200/50 bg-white rounded-full text-slate-400 hover:text-[#1e3a8a] hover:bg-slate-50 transition-colors"
+                    title="Help & Support"
+                >
+                    <HelpCircle className="w-4 h-4" />
+                </button>
             </div>
 
             {progress !== undefined && (

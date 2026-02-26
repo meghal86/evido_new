@@ -27,7 +27,7 @@ export async function getCriteriaData() {
     let repos: any[] = []
     if (token) {
         try {
-            const stats = await getGitHubStats(token)
+            const stats = await getGitHubStats(token, session.user.id)
             if (stats) {
                 repos = stats.recentRepos || []
             }

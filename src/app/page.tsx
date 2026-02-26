@@ -6,6 +6,7 @@ import { TopGaps } from '@/components/dashboard/top-gaps';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { AITip } from '@/components/dashboard/ai-tip';
+import { GetStarted } from '@/components/dashboard/get-started';
 import { PLAN_LEVELS } from '@/lib/plans';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -68,6 +69,14 @@ export default async function Dashboard(props: { searchParams: Promise<{ [key: s
 
         {/* AI Tip Banner - Contextual */}
         {gaps.length > 0 && <AITip gap={gaps[0]} />}
+
+        {/* Onboarding / Get Started - Only show if readiness is very low */}
+        {readinessScore < 10 && (
+          <GetStarted
+            githubConnected={data?.connections?.github || false}
+            evidenceCount={data?.counts?.evidence || 0}
+          />
+        )}
 
         {/* Layout */}
         <div className="grid grid-cols-1 gap-8">

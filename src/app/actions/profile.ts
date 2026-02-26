@@ -42,7 +42,7 @@ export async function getProfileData() {
 
         let githubProfile: Awaited<ReturnType<typeof getFullGitHubProfile>> = null
         if (token) {
-            githubProfile = await getFullGitHubProfile(token)
+            githubProfile = await getFullGitHubProfile(token, session.user.id)
         }
 
         // Compute visa readiness scores from evidence items
@@ -62,43 +62,53 @@ export async function getProfileData() {
             else criteriaStrength[c] = 'Weak'
         }
 
-        // Calculate visa scores
-        function computeScore(weights: Record<string, number>) {
-            let score = 50
+        // Calculate visa scores with distinct baselines
+        function computeScore(weights: Record<string, number>, baseline: number) {
+            let score = baseline;
             for (const [criterion, weight] of Object.entries(weights)) {
                 const strength = criteriaStrength[criterion]
                 if (strength === 'Strong') score += 10 * weight
-                else if (strength === 'Good') score += 5 * weight
-                else if (strength === 'Medium') score += 2 * weight
+                else if (strength === 'Good') score += 6 * weight
+                else if (strength === 'Medium') score += 3 * weight
             }
             // Bonus for GitHub metrics
             if (githubProfile) {
-                if (githubProfile.stats.totalStars > 10000) score += 5
-                else if (githubProfile.stats.totalStars > 1000) score += 3
-                if (githubProfile.stats.publicRepos > 50) score += 2
+                if (githubProfile.stats.totalStars > 10000) score += 6
+                else if (githubProfile.stats.totalStars > 1000) score += 4
+                if (githubProfile.stats.publicRepos > 50) score += 3
             }
-            return Math.min(100, Math.max(0, score))
+            // Add slight randomness based on user email length so they aren't completely flat across visas
+            // for users with 0 evidence
+            const jitter = (session?.user?.email?.length || 10) % 3;
+            score += jitter;
+
+            return Math.min(100, Math.max(0, Number(score.toFixed(1))));
         }
 
+        // EB-1A is hardest - low baseline, high requirement for original/leading
         const eb1aWeights: Record<string, number> = {
-            awards: 1, membership: 0.8, published: 1, judging: 0.8,
-            original: 1.2, authorship: 1, leading: 1, salary: 0.8,
-            artistic: 0.5, commercial: 0.8
-        }
-        const o1Weights: Record<string, number> = {
-            awards: 1, membership: 0.5, published: 0.8, judging: 1,
-            original: 1.2, authorship: 0.8, leading: 1, salary: 1,
-            artistic: 0.5, commercial: 0.8
-        }
-        const eb2niwWeights: Record<string, number> = {
-            awards: 0.8, membership: 0.5, published: 1.2, judging: 0.5,
-            original: 1.5, authorship: 1.2, leading: 0.8, salary: 0.5,
-            artistic: 0.3, commercial: 1
+            awards: 1.2, membership: 0.8, published: 1, judging: 1,
+            original: 1.5, authorship: 1.2, leading: 1.5, salary: 0.8,
+            artistic: 0.2, commercial: 0.8
         }
 
-        const eb1aScore = computeScore(eb1aWeights)
-        const o1Score = computeScore(o1Weights)
-        const eb2niwScore = computeScore(eb2niwWeights)
+        // O-1 is more flexible - higher baseline, emphasis on awards and critical roles
+        const o1Weights: Record<string, number> = {
+            awards: 1.5, membership: 0.5, published: 0.8, judging: 0.8,
+            original: 1.0, authorship: 0.8, leading: 1.8, salary: 1.2,
+            artistic: 0.5, commercial: 1.0
+        }
+
+        // NIW focuses heavily on impact and publications, highest baseline assuming a degree
+        const eb2niwWeights: Record<string, number> = {
+            awards: 0.5, membership: 0.5, published: 1.5, judging: 0.5,
+            original: 1.8, authorship: 1.5, leading: 0.8, salary: 0.5,
+            artistic: 0.2, commercial: 1.5
+        }
+
+        const eb1aScore = computeScore(eb1aWeights, 35) // Hardest baseline
+        const o1Score = computeScore(o1Weights, 42) // Medium baseline
+        const eb2niwScore = computeScore(eb2niwWeights, 48) // Easiest baseline for degree holders
 
         function getStatus(score: number) {
             if (score >= 85) return 'Strong Candidate'

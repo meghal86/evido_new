@@ -65,7 +65,7 @@ export default async function CriterionDetailPage(props: { params: Promise<{ id:
         )?.accounts.find((a: any) => a.provider === 'github')?.access_token;
 
         if (token) {
-            allRepos = await getUserRepos(token);
+            allRepos = await getUserRepos(token, session.user.id);
             // Sort by stars descending
             if (allRepos.length > 0) {
                 topRepo = allRepos.sort((a: any, b: any) => (b.stars || 0) - (a.stars || 0))[0];

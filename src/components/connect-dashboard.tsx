@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { ReadinessBreakdown } from './readiness-breakdown';
 import { calculateReadinessScore as calculateReadiness } from '@/lib/readiness';
+import { unlinkAccount } from '@/app/actions/connections';
 
 interface ConnectDashboardProps {
     initialConnections?: Record<string, boolean>;
@@ -24,12 +25,20 @@ export const ConnectDashboard: React.FC<ConnectDashboardProps> = ({
     const [showBreakdown, setShowBreakdown] = React.useState(false);
     const router = useRouter();
 
-    const handleToggle = (id: string) => {
+    const handleToggle = async (id: string) => {
         if (id === 'github') {
             if (!connections.github) {
                 import('next-auth/react').then(({ signIn }) => signIn('github', { callbackUrl: '/' }));
             } else {
-                import('next-auth/react').then(({ signOut }) => signOut({ callbackUrl: '/' }));
+                const res = await unlinkAccount('github');
+                if (res?.success) {
+                    setConnections(prev => ({ ...prev, github: false }));
+                }
+            }
+        } else if (id === 'linkedin' && connections.linkedin) {
+            const res = await unlinkAccount('linkedin');
+            if (res?.success) {
+                setConnections(prev => ({ ...prev, linkedin: false }));
             }
         }
     };

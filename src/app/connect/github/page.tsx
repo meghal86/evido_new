@@ -31,7 +31,7 @@ export default async function GitHubConnectPage() {
         );
     }
 
-    const repos = await getUserRepos(token);
+    const repos = await getUserRepos(token, session.user.id);
 
     return (
         <div className="min-h-screen bg-gray-50 lg:pl-64">
@@ -99,8 +99,8 @@ export default async function GitHubConnectPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wide ${repo.category === 'High Impact' ? 'bg-indigo-50 text-indigo-600' :
-                                                        repo.category === 'Original Work' ? 'bg-emerald-50 text-emerald-600' :
-                                                            'bg-slate-100 text-slate-500'
+                                                    repo.category === 'Original Work' ? 'bg-emerald-50 text-emerald-600' :
+                                                        'bg-slate-100 text-slate-500'
                                                     }`}>
                                                     {repo.category}
                                                 </span>

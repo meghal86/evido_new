@@ -27,7 +27,7 @@ export async function getDashboardData() {
 
         let githubStats = null
         if (token) {
-            githubStats = await getGitHubStats(token)
+            githubStats = await getGitHubStats(token, session.user.id)
         }
 
         // Calculate Criteria Status
@@ -66,7 +66,38 @@ export async function getDashboardData() {
             return { id, count, status };
         });
 
-        const readinessScore = Math.round((strongCount / 10) * 100);
+        // Determine criteria strength similarly to profile page
+        const criteriaStrength: Record<string, string> = {}
+        for (const c of criteriaIds) {
+            const count = evidenceByCriterion[c] || 0
+            if (count >= 3) criteriaStrength[c] = 'Strong'
+            else if (count >= 2) criteriaStrength[c] = 'Good'
+            else if (count >= 1) criteriaStrength[c] = 'Medium'
+            else criteriaStrength[c] = 'Weak'
+        }
+
+        // Use the EB-1A weights from profile.ts to keep Readiness Score consistent
+        const eb1aWeights: Record<string, number> = {
+            awards: 1, membership: 0.8, published: 1, judging: 0.8,
+            original: 1.2, authorship: 1, leading: 1, salary: 0.8,
+            artistic: 0.5, commercial: 0.8
+        }
+
+        let score = 50
+        for (const [criterion, weight] of Object.entries(eb1aWeights)) {
+            const strength = criteriaStrength[criterion]
+            if (strength === 'Strong') score += 10 * weight
+            else if (strength === 'Good') score += 5 * weight
+            else if (strength === 'Medium') score += 2 * weight
+        }
+
+        if (githubStats) {
+            if (githubStats.totalStars > 10000) score += 5
+            else if (githubStats.totalStars > 1000) score += 3
+            if (githubStats.totalRepos > 50) score += 2 // totalRepos instead of publicRepos
+        }
+
+        const readinessScore = Math.min(100, Math.max(0, Math.round(score)));
 
         // Check for RecommendationLetter model existence dynamically
         let letterCount = 0
