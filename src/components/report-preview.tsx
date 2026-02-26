@@ -9,9 +9,10 @@ import { toast } from 'sonner';
 interface ReportPreviewProps {
     onUpgrade?: (plan: string) => void;
     initialReport?: any;
+    liveScore?: number;
 }
 
-export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initialReport }) => {
+export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initialReport, liveScore }) => {
     const router = useRouter();
     const [report, setReport] = useState(initialReport);
     const [generating, setGenerating] = useState(false);
@@ -107,7 +108,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initial
                                         Confidential
                                     </div>
                                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                        Profile Strength: <span className="text-[#10b981]">{report.score}%</span>
+                                        Profile Strength: <span className="text-[#10b981]">{liveScore !== undefined ? liveScore : report.score}%</span>
                                     </div>
                                 </div>
                             </div>

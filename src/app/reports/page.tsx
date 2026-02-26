@@ -1,15 +1,15 @@
 import { Header } from '@/components/header';
 import { ReportList } from '@/components/report-list';
 import { getReports } from '@/app/actions/reports';
-import { getReadinessScore } from '@/lib/readiness-server';
-import { auth } from '@/auth';
+import { getDashboardData } from '@/app/actions/dashboard';
 
 export default async function ReportsPage() {
-    const session = await auth();
-    const [reports, readiness] = await Promise.all([
+    const [reports, dashboardData] = await Promise.all([
         getReports(),
-        getReadinessScore(session?.user?.id || '')
+        getDashboardData()
     ]);
+
+    const readiness = dashboardData?.readinessScore || 0;
 
     return (
         <div className="min-h-screen lg:pl-64">

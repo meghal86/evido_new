@@ -42,10 +42,37 @@ export function calculateCriteriaStatus(evidence: { criterionId: string }[]): Cr
     });
 }
 
-export function calculateReadinessScore(criteriaStatus: CriterionStatus[]): number {
-    const totalPoints = criteriaStatus.reduce((sum, item) => sum + item.points, 0);
-    const maxPoints = 30; // 10 criteria * 3 points
-    return Math.round((totalPoints / maxPoints) * 100);
+export function calculateReadinessScore(criteriaStatus: CriterionStatus[], githubProfile?: any, userEmail?: string): number {
+    const eb1aWeights: Record<string, number> = {
+        awards: 1.2, membership: 0.8, published: 1, judging: 1,
+        original: 1.5, authorship: 1.2, leading: 1.5, salary: 0.8,
+        artistic: 0.2, commercial: 0.8
+    };
+
+    let score = 35; // Baseline
+
+    // Add criteria scores
+    for (const item of criteriaStatus) {
+        const weight = eb1aWeights[item.id] || 1;
+        if (item.status === 'Strong') score += 10 * weight;
+        else if (item.status === 'Good') score += 6 * weight;
+        else if (item.status === 'Medium') score += 3 * weight;
+    }
+
+    // Add Github bonus if provided
+    if (githubProfile) {
+        if (githubProfile.stats?.totalStars > 10000) score += 6;
+        else if (githubProfile.stats?.totalStars > 1000) score += 4;
+
+        const publicRepos = githubProfile.stats?.publicRepos || githubProfile.stats?.totalRepos || 0;
+        if (publicRepos > 50) score += 3;
+    }
+
+    // Jitter for 0-state difference between visas
+    const jitter = (userEmail?.length || 10) % 3;
+    score += jitter;
+
+    return Math.min(100, Math.max(0, Number(score.toFixed(1))));
 }
 
 // Keep the old function signature for backward compatibility if needed, 
