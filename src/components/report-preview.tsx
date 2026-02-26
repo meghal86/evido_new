@@ -10,9 +10,10 @@ interface ReportPreviewProps {
     onUpgrade?: (plan: string) => void;
     initialReport?: any;
     liveScore?: number;
+    userPlan?: string;
 }
 
-export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initialReport, liveScore }) => {
+export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initialReport, liveScore, userPlan = 'Free' }) => {
     const router = useRouter();
     const [report, setReport] = useState(initialReport);
     const [generating, setGenerating] = useState(false);
@@ -171,58 +172,91 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ onUpgrade, initial
                     </div>
                 </div>
 
-                {/* Premium CTA Sidebar */}
+                {/* Premium CTA Sidebar / Download Sidebar */}
                 <div className="lg:w-[400px] flex-shrink-0 print:hidden">
                     <div className="glass p-10 rounded-[3rem] sticky top-28 space-y-10 hover:premium-shadow transition-all duration-700 overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/5 rounded-full blur-3xl -mr-10 -mt-10" />
 
-                        <div className="space-y-3">
-                            <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center shadow-inner">
-                                <Lock className="w-6 h-6 text-amber-600" />
-                            </div>
-                            <h3 className="text-3xl font-black text-[#0f172a] tracking-tight leading-tight">Unlock Analysis</h3>
-                            <p className="text-slate-500 font-medium">Get the complete EB-1A Evidence Roadmap with attorney-vetted strategies.</p>
-                        </div>
+                        {userPlan === 'Free' ? (
+                            <>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/5 rounded-full blur-3xl -mr-10 -mt-10" />
 
-                        <div className="space-y-6">
-                            <div className="p-8 bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] rounded-[2.5rem] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/20">
-                                <div className="flex justify-between items-center mb-6 relative z-10">
-                                    <span className="text-xs font-black uppercase tracking-[0.2em] text-blue-200/60">Full Analysis Report</span>
-                                    <span className="text-3xl font-black">$99</span>
+                                <div className="space-y-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center shadow-inner">
+                                        <Lock className="w-6 h-6 text-amber-600" />
+                                    </div>
+                                    <h3 className="text-3xl font-black text-[#0f172a] tracking-tight leading-tight">Unlock Analysis</h3>
+                                    <p className="text-slate-500 font-medium">Get the complete EB-1A Evidence Roadmap with attorney-vetted strategies.</p>
                                 </div>
 
-                                <ul className="space-y-4 mb-10 relative z-10">
-                                    {['Full PDF Compilation', 'Attorney-Grade AI Drafts', 'Priority Nexus Access'].map((feat) => (
-                                        <li key={feat} className="flex items-center gap-3 text-xs font-bold text-blue-100/80">
-                                            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-                                                <Check className="w-3 h-3 text-emerald-400" />
+                                <div className="space-y-6">
+                                    <div className="p-8 bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] rounded-[2.5rem] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/20">
+                                        <div className="flex justify-between items-center mb-6 relative z-10">
+                                            <span className="text-xs font-black uppercase tracking-[0.2em] text-blue-200/60">Full Analysis Report</span>
+                                            <span className="text-3xl font-black">$99</span>
+                                        </div>
+
+                                        <ul className="space-y-4 mb-10 relative z-10">
+                                            {['Full PDF Compilation', 'Attorney-Grade AI Drafts', 'Priority Nexus Access'].map((feat) => (
+                                                <li key={feat} className="flex items-center gap-3 text-xs font-bold text-blue-100/80">
+                                                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                                                        <Check className="w-3 h-3 text-emerald-400" />
+                                                    </div>
+                                                    {feat}
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        <button
+                                            onClick={() => handleUpgrade('Basic')}
+                                            className="w-full py-4 bg-white text-[#1e3a8a] font-black rounded-2xl shadow-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 group/btn relative z-10 uppercase tracking-widest text-xs active-click"
+                                        >
+                                            Upgrade Package <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/5 rounded-full blur-3xl -mr-10 -mt-10" />
+
+                                <div className="space-y-3">
+                                    <h3 className="text-3xl font-black text-[#0f172a] tracking-tight leading-tight">✨ Your Premium Report</h3>
+                                    <p className="text-slate-500 font-medium">This comprehensive analysis is included in your {userPlan} plan.</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="p-8 bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] rounded-[2.5rem] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/20">
+                                        <div className="flex items-center gap-2 mb-6 relative z-10">
+                                            <div className="p-1 bg-emerald-500/20 rounded-lg">
+                                                <Check className="w-4 h-4 text-emerald-400" />
                                             </div>
-                                            {feat}
-                                        </li>
-                                    ))}
-                                </ul>
+                                            <span className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">Included</span>
+                                        </div>
 
-                                <button
-                                    onClick={() => handleUpgrade('Basic')}
-                                    className="w-full py-4 bg-white text-[#1e3a8a] font-black rounded-2xl shadow-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 group/btn relative z-10 uppercase tracking-widest text-xs active-click"
-                                >
-                                    Upgrade Package <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
+                                        <ul className="space-y-4 mb-10 relative z-10">
+                                            {['Full PDF Compilation', 'Attorney-Grade AI Drafts', 'Priority Nexus Access'].map((feat) => (
+                                                <li key={feat} className="flex items-center gap-3 text-xs font-bold text-blue-100/80">
+                                                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                                                        <Check className="w-3 h-3 text-emerald-400" />
+                                                    </div>
+                                                    {feat}
+                                                </li>
+                                            ))}
+                                        </ul>
 
-                            <div className="flex items-center justify-center gap-6 pt-4 print:hidden">
-                                <button
-                                    onClick={() => window.print()}
-                                    className="p-3 glass rounded-xl text-slate-400 hover:text-[#1e3a8a] transition-all active-click hover:bg-blue-50"
-                                    title="Print / Save as PDF"
-                                >
-                                    <Printer className="w-5 h-5" />
-                                </button>
-                                <button className="p-3 glass rounded-xl text-slate-400 hover:text-[#1e3a8a] transition-all active-click hover:bg-blue-50">
-                                    <Share2 className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
+                                        <button
+                                            onClick={() => window.print()}
+                                            className="w-full py-4 bg-white text-[#1e3a8a] font-black rounded-2xl shadow-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 group/btn relative z-10 uppercase tracking-widest text-xs active-click"
+                                        >
+                                            <Printer className="w-4 h-4" /> Download PDF
+                                        </button>
+                                        <button className="w-full mt-3 py-4 bg-transparent border border-white/20 text-white font-black rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs active-click">
+                                            <Share2 className="w-4 h-4" /> Share Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

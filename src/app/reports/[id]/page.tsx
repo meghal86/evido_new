@@ -23,13 +23,18 @@ export default async function ReportDetailPage(props: { params: Promise<{ id: st
     }
 
     const liveReadiness = dashboardData?.readinessScore || 0;
+    const userPlan = dashboardData?.user?.plan || 'Free';
 
     return (
         <div className="min-h-screen lg:pl-64 print:pl-0">
             <div className="print:hidden">
                 <Header title="Report Detail" progress={liveReadiness} />
             </div>
-            <ReportPreview initialReport={report} liveScore={liveReadiness} />
+            <ReportPreview
+                initialReport={report}
+                liveScore={liveReadiness}
+                userPlan={userPlan}
+            />
         </div>
     );
 }

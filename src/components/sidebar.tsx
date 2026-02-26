@@ -148,15 +148,15 @@ export function Sidebar({ userPlan = "Free", userRole = "petitioner" }: SidebarP
                                 /* Petitioner bottom widget */
                                 <>
                                     <p className="text-[11px] font-black text-amber-400 uppercase tracking-widest mb-1">{userPlan} Plan</p>
-                                    {userPlan === 'Enterprise' ? (
+                                    {['Premium', 'Enterprise'].includes(userPlan) ? (
                                         <>
                                             <p className="text-[11px] text-blue-200/60 font-medium mb-4 leading-relaxed">Full access to all features enabled.</p>
                                             <button
                                                 onClick={() => handleNavigate('/settings')}
                                                 className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white text-[11px] font-black rounded-xl border border-white/10 transition-all duration-300 flex items-center justify-center gap-2 uppercase tracking-wider"
                                             >
-                                                <CreditCard className="w-3.5 h-3.5" />
-                                                Manage Billing
+                                                <Settings className="w-3.5 h-3.5" />
+                                                Manage Subscription
                                             </button>
                                         </>
                                     ) : (
